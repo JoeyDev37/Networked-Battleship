@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/NetworkedBattleship.iml" filepath="$PROJECT_DIR$/NetworkedBattleship.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Networked-Battleship.iml" filepath="$PROJECT_DIR$/Networked-Battleship.iml" />
+      <module fileurl="file://C:\Users\pcjoe\AndroidStudioProjects\Networked-Battleship\NetworkedBattleship.iml" filepath="C:\Users\pcjoe\AndroidStudioProjects\Networked-Battleship\NetworkedBattleship.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

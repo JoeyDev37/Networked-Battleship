@@ -12,7 +12,7 @@
 
 
     <TextView
-        android:id="@+id/gameScreen_currentPlayerText"
+        android:id="@+id/gameScreen_gameStatusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
@@ -37,7 +37,7 @@
         app:layout_constraintBottom_toTopOf="@+id/gameScreen_bottomGrid"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gameScreen_currentPlayerText"
+        app:layout_constraintTop_toBottomOf="@+id/gameScreen_gameStatusText"
         app:layout_constraintVertical_weight="1">
 
     </GridLayout>
@@ -59,4 +59,24 @@
         app:layout_constraintVertical_weight="1">
 
     </GridLayout>
+
+    <TextView
+        android:id="@+id/gameScreen_currentPlayerText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
+        android:text="CurrentPlayer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/gameScreen_saveButton"
+        android:layout_width="wrap_content"
+        android:layout_height="33dp"
+        android:layout_marginEnd="8dp"
+        android:text="SAVE"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:layout_editor_absoluteY="0dp" />
 </android.support.constraint.ConstraintLayout>

@@ -9,6 +9,9 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.widget.EditText
+import android.widget.TextView
+import kotlinx.android.synthetic.main.activity_game_screen.*
 
 /**
  * Created by Joey Weidman
@@ -76,6 +79,10 @@ class Cell : View {
         if(event !is MotionEvent)
             return false
 
+        //Don't allow any more touch actions if a player has won
+        if(NetworkedBattleship.gameState == GameState.P1_VICTORY || NetworkedBattleship.gameState == GameState.P2_VICTORY)
+            return true
+
         when(event.action) {
             MotionEvent.ACTION_DOWN -> {
 
@@ -103,7 +110,7 @@ class Cell : View {
 
                         NetworkedBattleship.changeTurn()
 
-                        val intent: Intent = Intent(context, GameScreenActivity::class.java)
+                        val intent = Intent(context, GameScreenActivity::class.java)
                         context.startActivity(intent)
                     }
                     else if (opponentStatus == Status.SHIP) { //Same stuff for a hit
@@ -115,9 +122,35 @@ class Cell : View {
 
                         decrementShipHealth()
 
+                        if(checkForVictory()) {
+                            if(NetworkedBattleship.currentPlayer == 1) {
+                                //P1 Victory
+                                Log.e("Cell", "P1 VICTORY REACHED")
+                                NetworkedBattleship.gameState = GameState.P1_VICTORY
+                            } else if (NetworkedBattleship.currentPlayer == 2) {
+                                //P2 Victory
+                                Log.e("Cell", "P2 VICTORY REACHED")
+                                NetworkedBattleship.gameState = GameState.P2_VICTORY
+                            }
+                        }
+
+                        if(NetworkedBattleship.currentPlayer == 2) {
+                            Log.e("Cell", "P1 Destroyer Health: ${NetworkedBattleship.player1.destroyerHealth}")
+                            Log.e("Cell", "P1 Cruiser Health: ${NetworkedBattleship.player1.cruiserHealth}")
+                            Log.e("Cell", "P1 Submarine Health: ${NetworkedBattleship.player1.submarineHealth}")
+                            Log.e("Cell", "P1 Battleship Health: ${NetworkedBattleship.player1.battleshipHealth}")
+                            Log.e("Cell", "P1 Carrier Health: ${NetworkedBattleship.player1.carrierHealth}")
+                        } else if(NetworkedBattleship.currentPlayer == 1) {
+                            Log.e("Cell", "P2 Destroyer Health: ${NetworkedBattleship.player2.destroyerHealth}")
+                            Log.e("Cell", "P2 Cruiser Health: ${NetworkedBattleship.player2.cruiserHealth}")
+                            Log.e("Cell", "P2 Submarine Health: ${NetworkedBattleship.player2.submarineHealth}")
+                            Log.e("Cell", "P2 Battleship Health: ${NetworkedBattleship.player2.battleshipHealth}")
+                            Log.e("Cell", "P2 Carrier Health: ${NetworkedBattleship.player2.carrierHealth}")
+                        }
+
                         NetworkedBattleship.changeTurn()
 
-                        val intent: Intent = Intent(context, GameScreenActivity::class.java)
+                        val intent = Intent(context, GameScreenActivity::class.java)
                         context.startActivity(intent)
                     }
                 }
@@ -128,9 +161,8 @@ class Cell : View {
 
     //Decrements the ships health and sinks it if health drops to 0
     fun decrementShipHealth() {
-        var shipTypeToDecrement = opponentBottomGrid[x][y].second
-        Log.e("Cell", "Ship type to dec is: " + shipTypeToDecrement.toString())
-        if(NetworkedBattleship.currentPlayer == 1) {
+        val shipTypeToDecrement = opponentBottomGrid[x][y].second
+        if(NetworkedBattleship.currentPlayer == 2) {
             when(shipTypeToDecrement) {
                 Ship.DESTROYER -> {
                     NetworkedBattleship.player1.destroyerHealth--
@@ -168,7 +200,7 @@ class Cell : View {
                     }
                 }
             }
-        } else if (NetworkedBattleship.currentPlayer == 2) {
+        } else if (NetworkedBattleship.currentPlayer == 1) {
             when(shipTypeToDecrement) {
                 Ship.DESTROYER -> {
                     NetworkedBattleship.player2.destroyerHealth--
@@ -209,16 +241,30 @@ class Cell : View {
         }
     }
 
+    /* Loops through the whole grid to find the cells with the shiptype that matches the one that got sunk
+     * and sets its status to SUNK
+     */
     fun sinkShip(shipTypeToSink: Ship) {
         for(yPos in 0..9) {
             for(xPos in 0..9) {
                 if(opponentBottomGrid[xPos][yPos].second == shipTypeToSink){
-                    Log.e("Cell", "REACHED")
                     val updatedCell = Triple(Status.SUNK, opponentBottomGrid[xPos][yPos].second, false)
                     playerTopGrid[xPos][yPos] = updatedCell
                     opponentBottomGrid[xPos][yPos] = updatedCell
                 }
             }
         }
+    }
+
+    /* Goes through the health of every ship to see if they are all sunk */
+    fun checkForVictory() : Boolean {
+        if(NetworkedBattleship.currentPlayer == 1) {
+            return (NetworkedBattleship.player2.destroyerHealth == -1 && NetworkedBattleship.player2.cruiserHealth == -1 && NetworkedBattleship.player2.submarineHealth == -1 &&
+                    NetworkedBattleship.player2.battleshipHealth == -1 && NetworkedBattleship.player2.carrierHealth == -1)
+        } else if (NetworkedBattleship.currentPlayer == 2) {
+            return (NetworkedBattleship.player1.destroyerHealth == -1 && NetworkedBattleship.player1.cruiserHealth == -1 && NetworkedBattleship.player1.submarineHealth == -1 &&
+                    NetworkedBattleship.player1.battleshipHealth == -1 && NetworkedBattleship.player1.carrierHealth == -1)
+        }
+        return false
     }
 }

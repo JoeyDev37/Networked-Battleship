@@ -2,6 +2,7 @@ package com.example.joeyweidman.networkedbattleship
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.GridLayout
 import kotlinx.android.synthetic.main.activity_game_screen.*
@@ -18,6 +19,20 @@ class GameScreenActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game_screen)
+
+        NetworkedBattleship.gameState
+
+        gameScreen_saveButton.setOnClickListener {
+            NetworkedBattleship.SaveGame(this)
+        }
+
+        if(NetworkedBattleship.currentPlayer == 1) {
+            gameScreen_currentPlayerText.text = "P1 TURN"
+        } else if(NetworkedBattleship.currentPlayer == 2) {
+            gameScreen_currentPlayerText.text = "P2 TURN"
+        }
+
+        gameScreen_gameStatusText.text = NetworkedBattleship.gameState.toString()
 
         topGrid = Array(10, {Array(10, {Cell(this, 0, 0, true)})})
         bottomGrid = Array(10, {Array(10, {Cell(this, 0, 0, false)})})
