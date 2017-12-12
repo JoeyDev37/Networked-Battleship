@@ -169,6 +169,7 @@ class Cell : View {
                     if(NetworkedBattleship.player1.destroyerHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player1.destroyerHealth = -1
+                        NetworkedBattleship.player1.shipsRemaining--
                     }
                 }
                 Ship.CRUISER -> {
@@ -176,6 +177,7 @@ class Cell : View {
                     if(NetworkedBattleship.player1.cruiserHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player1.cruiserHealth = -1
+                        NetworkedBattleship.player1.shipsRemaining--
                     }
                 }
                 Ship.SUBMARINE -> {
@@ -183,6 +185,7 @@ class Cell : View {
                     if(NetworkedBattleship.player1.submarineHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player1.submarineHealth = -1
+                        NetworkedBattleship.player1.shipsRemaining--
                     }
                 }
                 Ship.BATTLESHIP -> {
@@ -190,6 +193,7 @@ class Cell : View {
                     if(NetworkedBattleship.player1.battleshipHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player1.battleshipHealth = -1
+                        NetworkedBattleship.player1.shipsRemaining--
                     }
                 }
                 Ship.CARRIER -> {
@@ -197,6 +201,7 @@ class Cell : View {
                     if(NetworkedBattleship.player1.carrierHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player1.carrierHealth = -1
+                        NetworkedBattleship.player1.shipsRemaining--
                     }
                 }
             }
@@ -207,6 +212,7 @@ class Cell : View {
                     if(NetworkedBattleship.player2.destroyerHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player2.destroyerHealth = -1
+                        NetworkedBattleship.player2.shipsRemaining--
                     }
                 }
                 Ship.CRUISER -> {
@@ -214,6 +220,7 @@ class Cell : View {
                     if(NetworkedBattleship.player2.cruiserHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player2.cruiserHealth = -1
+                        NetworkedBattleship.player2.shipsRemaining--
                     }
                 }
                 Ship.SUBMARINE -> {
@@ -221,6 +228,7 @@ class Cell : View {
                     if(NetworkedBattleship.player2.submarineHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player2.submarineHealth = -1
+                        NetworkedBattleship.player2.shipsRemaining--
                     }
                 }
                 Ship.BATTLESHIP -> {
@@ -228,6 +236,7 @@ class Cell : View {
                     if(NetworkedBattleship.player2.battleshipHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player2.battleshipHealth = -1
+                        NetworkedBattleship.player2.shipsRemaining--
                     }
                 }
                 Ship.CARRIER -> {
@@ -235,6 +244,7 @@ class Cell : View {
                     if(NetworkedBattleship.player2.carrierHealth == 0) {
                         sinkShip(shipTypeToDecrement)
                         NetworkedBattleship.player2.carrierHealth = -1
+                        NetworkedBattleship.player2.shipsRemaining--
                     }
                 }
             }

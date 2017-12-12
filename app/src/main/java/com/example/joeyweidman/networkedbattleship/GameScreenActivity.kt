@@ -1,8 +1,10 @@
 package com.example.joeyweidman.networkedbattleship
 
+import android.opengl.Visibility
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
 import kotlinx.android.synthetic.main.activity_game_screen.*
@@ -26,13 +28,21 @@ class GameScreenActivity : AppCompatActivity() {
             NetworkedBattleship.SaveGame(this)
         }
 
-        if(NetworkedBattleship.currentPlayer == 1) {
-            gameScreen_currentPlayerText.text = "P1 TURN"
-        } else if(NetworkedBattleship.currentPlayer == 2) {
-            gameScreen_currentPlayerText.text = "P2 TURN"
-        }
-
+        //Update the game state text
         gameScreen_gameStatusText.text = NetworkedBattleship.gameState.toString()
+
+        //Update the unsunk ships text
+        gameScreen_unsunkShipsP1.text = "Ships Remaining: ${NetworkedBattleship.player1.shipsRemaining.toString()}"
+        gameScreen_unsunkShipsP2.text = "Ships Remaining: ${NetworkedBattleship.player2.shipsRemaining.toString()}"
+
+        //Update the arrow to show the current turn
+        if(NetworkedBattleship.currentPlayer == 1) {
+            gameScreen_leftArrow.visibility = View.VISIBLE
+            gameScreen_rightArrow.visibility = View.INVISIBLE
+        } else if(NetworkedBattleship.currentPlayer == 2) {
+            gameScreen_rightArrow.visibility = View.VISIBLE
+            gameScreen_leftArrow.visibility = View.INVISIBLE
+        }
 
         topGrid = Array(10, {Array(10, {Cell(this, 0, 0, true)})})
         bottomGrid = Array(10, {Array(10, {Cell(this, 0, 0, false)})})

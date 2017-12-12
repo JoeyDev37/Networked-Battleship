@@ -13,8 +13,6 @@ import java.io.FileInputStream
  * Created by Joey Weidman
  */
 object NetworkedBattleship {
-    //TODO: Add counter for remaining ships
-
     var gameState: GameState = GameState.STARTING //json
     var currentPlayer: Int = 1 //json
 
