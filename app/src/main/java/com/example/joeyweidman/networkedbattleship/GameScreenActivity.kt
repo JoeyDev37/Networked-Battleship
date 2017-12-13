@@ -3,13 +3,24 @@ package com.example.joeyweidman.networkedbattleship
 import android.opengl.Visibility
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Debug
+import android.provider.ContactsContract
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_game_screen.*
 
 class GameScreenActivity : AppCompatActivity() {
+
+    private lateinit var mAuth: FirebaseAuth
+
+    private lateinit var rootRef: DatabaseReference
+    private lateinit var gameKeyRef: DatabaseReference
+    private lateinit var jsonRef: DatabaseReference
+
     val GRID_SIZE = 10
     lateinit var topGrid: Array<Array<Cell>>
     lateinit var bottomGrid: Array<Array<Cell>>
@@ -22,11 +33,37 @@ class GameScreenActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game_screen)
 
-        NetworkedBattleship.gameState
+        mAuth = FirebaseAuth.getInstance()
 
-        gameScreen_saveButton.setOnClickListener {
-            NetworkedBattleship.SaveGame(this)
+        //Which player you are: 1, 2, or 0 (spectator)
+        val player: Int
+
+        val gameKey = intent.getStringExtra("KEY")
+
+        rootRef = FirebaseDatabase.getInstance().reference
+        gameKeyRef = rootRef.child("games").child(gameKey)
+        jsonRef = gameKeyRef.child("json")
+
+        //Determine which player you are
+        if(gameKeyRef.child("idplayer1").key == mAuth.currentUser!!.uid)
+            player = 1
+        else if(gameKeyRef.child("idplayer2").key == mAuth.currentUser!!.uid)
+            player = 2
+        else
+            player = 0
+
+        val jsonListener = object: ValueEventListener {
+            override fun onCancelled(dataSnapshot: DatabaseError?) {
+
+            }
+
+            override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                val jsonString = dataSnapshot?.value as String
+                NetworkedBattleship.LoadGame(jsonString)
+            }
         }
+
+        jsonRef.addValueEventListener(jsonListener)
 
         //Update the game state text
         gameScreen_gameStatusText.text = NetworkedBattleship.gameState.toString()

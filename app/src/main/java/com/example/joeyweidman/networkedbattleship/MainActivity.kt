@@ -13,6 +13,7 @@ import android.widget.BaseAdapter
 import android.widget.TextView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
 import java.text.FieldPosition
 
@@ -20,7 +21,10 @@ import java.text.FieldPosition
 class MainActivity : AppCompatActivity() {
 
     private lateinit var mAuth: FirebaseAuth
-    val GRID_SIZE = 10
+
+    private lateinit var rootRef: DatabaseReference
+    private lateinit var gamesRef: DatabaseReference
+    private lateinit var listOfGames: MutableList<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,13 +41,11 @@ class MainActivity : AppCompatActivity() {
 
         //Get the display name of the current user
         val currentUser: FirebaseUser? = mAuth.currentUser
-        if(currentUser != null) {
-            val welcomeText = StringBuilder()
-            welcomeText.append("Hello ")
-            welcomeText.append(currentUser.displayName)
-            welcomeText.append("!")
-            main_userNameText.text = welcomeText.toString()
-        }
+        val welcomeText = StringBuilder()
+        welcomeText.append("Hello ")
+        welcomeText.append(currentUser!!.displayName)
+        welcomeText.append("!")
+        main_userNameText.text = welcomeText.toString()
 
         main_logOutButton.setOnClickListener {
             mAuth.signOut()
@@ -51,9 +53,35 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, LoginActivity::class.java))
         }
 
+        listOfGames = mutableListOf()
+
+        rootRef = FirebaseDatabase.getInstance().reference
+        gamesRef = rootRef.child("games")
+
+        val gameListener = object: ValueEventListener {
+            override fun onCancelled(p0: DatabaseError?) {
+
+            }
+
+            override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                listOfGames.clear()
+                if(dataSnapshot!!.exists()) {
+                    for(game in dataSnapshot.children) {
+                        val string: String = game.key
+                        listOfGames.add(string)
+                    }
+                    val adapter = MyCustomAdapter(this@MainActivity, listOfGames)
+                    main_gameListView.adapter = adapter
+                }
+            }
+        }
+
+        gamesRef.addValueEventListener(gameListener)
+
         main_gameListView.setOnItemClickListener { parent, view, position, id ->
-            NetworkedBattleship.LoadGame(filesDir.listFiles()[position])
-            startActivity(Intent(this, GameScreenActivity::class.java))
+            //NetworkedBattleship.LoadGame(filesDir.listFiles()[position])
+            //startActivity(Intent(this, GameScreenActivity::class.java))
+            
         }
 
         // Example of a call to a native method
@@ -65,21 +93,29 @@ class MainActivity : AppCompatActivity() {
         NetworkedBattleship.topGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, true)})})
         NetworkedBattleship.bottomGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, false)})})
 
+        /* Starts a new game and puts the user in it */
         main_newGameButton.setOnClickListener {
+            NetworkedBattleship.cleanGame() //Initialize the game boards
             NetworkedBattleship.PlaceShipsRandomly() //Place ships randomly for P1 and P2
+            val key = NetworkedBattleship.writeNewGame(mAuth.currentUser!!.uid) //Start a new game and add the user with his id
             val intent = Intent(this, GameScreenActivity::class.java)
+            intent.putExtra("KEY", key)
             startActivity(intent)
         }
 
-        main_gameListView.adapter = MyCustomAdapter(this)
+        main_gameListView.setOnItemClickListener { parent, view, position, id ->
+
+        }
     }
 
-    private class MyCustomAdapter(context: Context): BaseAdapter() {
+    private class MyCustomAdapter(context: Context, list: MutableList<String>): BaseAdapter() {
 
         private val mContext: Context
+        private val list: MutableList<String>
 
         init {
             mContext = context
+            this.list = list
         }
 
         //Responsible for rendering each row
@@ -91,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             gameNameText.text = "Game $position"
 
             val gameDetailsText = rowMain.findViewById<TextView>(R.id.gameDetails_textView)
-            gameDetailsText.text = "Game Details"
+            gameDetailsText.text = list[position]
             return rowMain
         }
 
@@ -105,7 +141,7 @@ class MainActivity : AppCompatActivity() {
 
         //Responsible for how many rows in the list
         override fun getCount(): Int {
-            return mContext.filesDir.listFiles().size
+            return list.size
         }
 
     }

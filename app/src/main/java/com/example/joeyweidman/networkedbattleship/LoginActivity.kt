@@ -91,7 +91,7 @@ class LoginActivity : AppCompatActivity() {
         mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task: Task<AuthResult> ->
             if(task.isSuccessful) {
                 Log.d("LoginActivity", "createUserWithEmail: success")
-                Toast.makeText(this, "Created Account", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Signed In", Toast.LENGTH_SHORT).show()
                 finish()
                 startActivity(Intent(this, MainActivity::class.java))
             } else {

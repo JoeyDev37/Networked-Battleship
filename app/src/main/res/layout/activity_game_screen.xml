@@ -60,16 +60,6 @@
 
     </GridLayout>
 
-    <Button
-        android:id="@+id/gameScreen_saveButton"
-        android:layout_width="wrap_content"
-        android:layout_height="33dp"
-        android:layout_marginEnd="132dp"
-        android:text="SAVE"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:layout_editor_absoluteY="158dp" />
-
     <TextView
         android:id="@+id/gameScreen_nameP1"
         android:layout_width="wrap_content"

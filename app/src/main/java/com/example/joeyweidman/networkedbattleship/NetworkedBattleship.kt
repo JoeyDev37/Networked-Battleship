@@ -2,6 +2,8 @@ package com.example.joeyweidman.networkedbattleship
 
 import android.content.Context
 import android.graphics.Point
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
 import java.io.File
 import java.io.FileOutputStream
@@ -13,6 +15,11 @@ import java.io.FileInputStream
  * Created by Joey Weidman
  */
 object NetworkedBattleship {
+
+    //Get a reference to the root of the json tree
+    private var mRootRef: DatabaseReference = FirebaseDatabase.getInstance().reference
+    private var mGamesRef: DatabaseReference = mRootRef.child("games")
+
     var gameState: GameState = GameState.STARTING //json
     var currentPlayer: Int = 1 //json
 
@@ -144,6 +151,8 @@ object NetworkedBattleship {
             val bottomGridP2: Array<Array<Triple<Status, Ship, Boolean>>>
     )
 
+    data class FirebaseEntry(val json: String, val gameID: String, val IDplayer1: String, val IDplayer2: String)
+
     //Temporary save game function before I save things to firebase
     fun SaveGame(mContext: Context) {
         val savedGame = SaveGameState(
@@ -157,10 +166,10 @@ object NetworkedBattleship {
         fileStream?.close()
     }
 
-    fun LoadGame(file: File) {
+    fun LoadGame(jsonString: String) {
         val gson = Gson()
-        val inputAsString = FileInputStream(file).bufferedReader().use { it.readText() }
-        val savedGame = gson.fromJson(inputAsString, SaveGameState::class.java)
+        //val inputAsString = FileInputStream(file).bufferedReader().use { it.readText() }
+        val savedGame = gson.fromJson(jsonString, SaveGameState::class.java)
 
         gameState = savedGame.gameState
         currentPlayer = savedGame.currentPlayer
@@ -170,5 +179,30 @@ object NetworkedBattleship {
         topGridP2 = savedGame.topGridP2
         bottomGridP1 = savedGame.bottomGridP1
         bottomGridP2 = savedGame.bottomGridP2
+    }
+
+    fun writeNewGame(userID: String): String {
+        val savedGame = SaveGameState(
+                this.gameState, currentPlayer, player1, player2, topGridP1, topGridP2, bottomGridP1, bottomGridP2
+        )
+        val gson = Gson()
+        val jsonString: String = gson.toJson(savedGame)
+
+        val key = mRootRef.child("games").push().key
+        val firebaseEntry = FirebaseEntry(jsonString, key, "empty", "empty")
+        mRootRef.child("games").child(key).setValue(firebaseEntry)
+        mRootRef.child("games").child(key).child("idplayer1").setValue(userID)
+        return key
+    }
+
+    fun cleanGame() {
+        gameState = GameState.STARTING
+        currentPlayer = 1
+        player1 = Player()
+        player2 = Player()
+        topGridP1 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, true)})})
+        topGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, true)})})
+        bottomGridP1 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, false)})})
+        bottomGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, false)})})
     }
 }
