@@ -28,8 +28,8 @@ class GameScreenActivity : AppCompatActivity() {
     val GRID_SIZE = 10
     lateinit var topGrid: Array<Array<Cell>>
     lateinit var bottomGrid: Array<Array<Cell>>
-    lateinit var opponentBottomGrid: Array<Array<Triple<Status, Ship, Boolean>>>
-    lateinit var playerTopGrid: Array<Array<Triple<Status, Ship, Boolean>>>
+    lateinit var opponentBottomGrid: Array<Array<Pair<Status, Ship>>>
+    lateinit var playerTopGrid: Array<Array<Pair<Status, Ship>>>
 
     /* OnCreate will read from the global data to create new game grid
      * every time the GameScreenActivity is started. So every time the player
@@ -42,18 +42,13 @@ class GameScreenActivity : AppCompatActivity() {
         mAuth = FirebaseAuth.getInstance()
 
         val gameKey = intent.getStringExtra("KEY")
+        player = intent.getIntExtra("PLAYER", 0)
+
+        Log.e("GameScreen", "Game Key: ${gameKey}, Player: ${player}")
 
         rootRef = FirebaseDatabase.getInstance().reference
         gameKeyRef = rootRef.child("games").child(gameKey)
         jsonRef = gameKeyRef.child("json")
-
-        //Determine which player you are
-        if(gameKeyRef.child("idplayer1").key == mAuth.currentUser!!.uid)
-            player = 1
-        else if(gameKeyRef.child("idplayer2").key == mAuth.currentUser!!.uid)
-            player = 2
-        else
-            player = 0
 
         val jsonListener = object: ValueEventListener {
             override fun onCancelled(dataSnapshot: DatabaseError?) {
@@ -63,6 +58,9 @@ class GameScreenActivity : AppCompatActivity() {
             override fun onDataChange(dataSnapshot: DataSnapshot?) {
                 val jsonString = dataSnapshot?.value as String
                 NetworkedBattleship.LoadGame(jsonString)
+                updateGrid()
+                updateArrows()
+                updateShipText()
             }
         }
 
@@ -70,10 +68,6 @@ class GameScreenActivity : AppCompatActivity() {
 
         //Update the game state text
         gameScreen_gameStatusText.text = NetworkedBattleship.gameState.toString()
-
-        //Update the unsunk ships text
-        gameScreen_unsunkShipsP1.text = "Ships Remaining: ${NetworkedBattleship.player1.shipsRemaining.toString()}"
-        gameScreen_unsunkShipsP2.text = "Ships Remaining: ${NetworkedBattleship.player2.shipsRemaining.toString()}"
 
         //Update the arrow to show the current turn
         if(NetworkedBattleship.currentPlayer == 1) {
@@ -85,9 +79,10 @@ class GameScreenActivity : AppCompatActivity() {
         }
 
         //Initialize the top and bottom grids to empty cells
-        topGrid = Array(10, {Array(10, {Cell(this, 0, 0, true)})})
-        bottomGrid = Array(10, {Array(10, {Cell(this, 0, 0, false)})})
+        topGrid = Array(10, {Array(10, {Cell(this, 0, 0)})})
+        bottomGrid = Array(10, {Array(10, {Cell(this, 0, 0)})})
 
+        //Set the on touch listener for the cells
         @SuppressLint("ClickableViewAccessibility")
         for(y in 0..9) {
             for(x in 0..9) {
@@ -97,6 +92,10 @@ class GameScreenActivity : AppCompatActivity() {
                         if(event !is MotionEvent)
                             return false
 
+                        //Don't allow touch actions if it's not the players turn
+                        if(NetworkedBattleship.currentPlayer != player)
+                            return true
+
                         //Don't allow any more touch actions if a player has won
                         if(NetworkedBattleship.gameState == GameState.P1_VICTORY || NetworkedBattleship.gameState == GameState.P2_VICTORY)
                             return true
@@ -105,74 +104,68 @@ class GameScreenActivity : AppCompatActivity() {
                             MotionEvent.ACTION_DOWN -> {
 
                                 //Determine which grids we are working with:
-                                if(NetworkedBattleship.currentPlayer == 1) {
+                                if(player == 1) {
                                     playerTopGrid = NetworkedBattleship.topGridP1
                                     opponentBottomGrid = NetworkedBattleship.bottomGridP2
-                                } else if (NetworkedBattleship.currentPlayer == 2) {
+                                } else if (player == 2) {
                                     playerTopGrid = NetworkedBattleship.topGridP2
                                     opponentBottomGrid = NetworkedBattleship.bottomGridP1
                                 }
 
-                                Log.e("Cell", "Ship type HIT is: " + opponentBottomGrid[x][y].second.toString())
+                                //Log.e("Cell", "Ship type HIT is: " + opponentBottomGrid[x][y].second.toString())
 
                                 //Variables to help with readability
                                 val opponentStatus = opponentBottomGrid[x][y].first
                                 val opponentShipType = opponentBottomGrid[x][y].second
 
-                                if(currentCell.isTouchable) {
-                                    if (opponentStatus == Status.EMPTY) { //If the shot was a miss
-                                        currentCell.currentStatus = Status.MISS //Might as well update the cell now to display the correct color before we switch activities
-                                        val updatedCell = Triple(Status.MISS, currentCell.shipType, false)
-                                        playerTopGrid[x][y] = updatedCell //Set the player's top grid to show the miss
-                                        opponentBottomGrid[x][y] = updatedCell //And set the opponents bottom grid to show where the player attacked
 
-                                        NetworkedBattleship.changeTurn()
+                                if (opponentStatus == Status.EMPTY) { //If the shot was a miss
+                                    //currentCell.currentStatus = Status.MISS //Might as well update the cell now to display the correct color before we switch activities
+                                    val updatedCell = Pair(Status.MISS, currentCell.shipType)
+                                    playerTopGrid[x][y] = updatedCell //Set the player's top grid to show the miss
+                                    opponentBottomGrid[x][y] = updatedCell //And set the opponents bottom grid to show where the player attacked
 
+                                    NetworkedBattleship.changeTurn()
 
+                                    NetworkedBattleship.UpdateGame(gameKey)
+                                }
+                                else if (opponentStatus == Status.SHIP) { //Same stuff for a hit
+                                    //currentCell.currentStatus = Status.HIT
+                                    var updatedCell = Pair(Status.HIT, currentCell.shipType)
+                                    playerTopGrid[x][y] = updatedCell
+                                    updatedCell = Pair(Status.HIT, opponentShipType)
+                                    opponentBottomGrid[x][y] = updatedCell
+                                    decrementShipHealth(opponentBottomGrid[x][y].second)
 
-                                        //val intent = Intent(context, GameScreenActivity::class.java)
-                                        //context.startActivity(intent)
-                                    }
-                                    else if (opponentStatus == Status.SHIP) { //Same stuff for a hit
-                                        currentCell.currentStatus = Status.HIT
-                                        var updatedCell = Triple(Status.HIT, currentCell.shipType, false)
-                                        playerTopGrid[x][y] = updatedCell
-                                        updatedCell = Triple(Status.HIT, opponentShipType, false)
-                                        opponentBottomGrid[x][y] = updatedCell
-
-                                        decrementShipHealth(currentCell.shipType)
-
-                                        if(checkForVictory()) {
-                                            if(NetworkedBattleship.currentPlayer == 1) {
-                                                //P1 Victory
-                                                Log.e("Cell", "P1 VICTORY REACHED")
-                                                NetworkedBattleship.gameState = GameState.P1_VICTORY
-                                            } else if (NetworkedBattleship.currentPlayer == 2) {
-                                                //P2 Victory
-                                                Log.e("Cell", "P2 VICTORY REACHED")
-                                                NetworkedBattleship.gameState = GameState.P2_VICTORY
-                                            }
+                                    if(checkForVictory()) {
+                                        if(player == 1) {
+                                            //P1 Victory
+                                            Log.e("Cell", "P1 VICTORY REACHED")
+                                            NetworkedBattleship.gameState = GameState.P1_VICTORY
+                                        } else if (player == 2) {
+                                            //P2 Victory
+                                            Log.e("Cell", "P2 VICTORY REACHED")
+                                            NetworkedBattleship.gameState = GameState.P2_VICTORY
                                         }
-
-                                        if(NetworkedBattleship.currentPlayer == 2) {
-                                            Log.e("Cell", "P1 Destroyer Health: ${NetworkedBattleship.player1.destroyerHealth}")
-                                            Log.e("Cell", "P1 Cruiser Health: ${NetworkedBattleship.player1.cruiserHealth}")
-                                            Log.e("Cell", "P1 Submarine Health: ${NetworkedBattleship.player1.submarineHealth}")
-                                            Log.e("Cell", "P1 Battleship Health: ${NetworkedBattleship.player1.battleshipHealth}")
-                                            Log.e("Cell", "P1 Carrier Health: ${NetworkedBattleship.player1.carrierHealth}")
-                                        } else if(NetworkedBattleship.currentPlayer == 1) {
-                                            Log.e("Cell", "P2 Destroyer Health: ${NetworkedBattleship.player2.destroyerHealth}")
-                                            Log.e("Cell", "P2 Cruiser Health: ${NetworkedBattleship.player2.cruiserHealth}")
-                                            Log.e("Cell", "P2 Submarine Health: ${NetworkedBattleship.player2.submarineHealth}")
-                                            Log.e("Cell", "P2 Battleship Health: ${NetworkedBattleship.player2.battleshipHealth}")
-                                            Log.e("Cell", "P2 Carrier Health: ${NetworkedBattleship.player2.carrierHealth}")
-                                        }
-
-                                        NetworkedBattleship.changeTurn()
-
-                                        //val intent = Intent(context, GameScreenActivity::class.java)
-                                        //context.startActivity(intent)
                                     }
+
+                                    /*if(player == 2) {
+                                        Log.e("Cell", "P1 Destroyer Health: ${NetworkedBattleship.player1.destroyerHealth}")
+                                        Log.e("Cell", "P1 Cruiser Health: ${NetworkedBattleship.player1.cruiserHealth}")
+                                        Log.e("Cell", "P1 Submarine Health: ${NetworkedBattleship.player1.submarineHealth}")
+                                        Log.e("Cell", "P1 Battleship Health: ${NetworkedBattleship.player1.battleshipHealth}")
+                                        Log.e("Cell", "P1 Carrier Health: ${NetworkedBattleship.player1.carrierHealth}")
+                                    } else if(player == 1) {
+                                        Log.e("Cell", "P2 Destroyer Health: ${NetworkedBattleship.player2.destroyerHealth}")
+                                        Log.e("Cell", "P2 Cruiser Health: ${NetworkedBattleship.player2.cruiserHealth}")
+                                        Log.e("Cell", "P2 Submarine Health: ${NetworkedBattleship.player2.submarineHealth}")
+                                        Log.e("Cell", "P2 Battleship Health: ${NetworkedBattleship.player2.battleshipHealth}")
+                                        Log.e("Cell", "P2 Carrier Health: ${NetworkedBattleship.player2.carrierHealth}")
+                                    }*/
+
+                                    //NetworkedBattleship.changeTurn()
+
+                                    NetworkedBattleship.UpdateGame(gameKey)
                                 }
                             }
                         }
@@ -183,47 +176,42 @@ class GameScreenActivity : AppCompatActivity() {
             }
         }
 
-
-        /* Read from the global grid data to update and re-draw the cell grid */
-        if(NetworkedBattleship.currentPlayer == 1) {
+        /* Update the cells to their starting status */
+        if(player == 1) {
             for(y in 0..GRID_SIZE - 1) {
                 for(x in 0..GRID_SIZE - 1) {
                     //var cell = Cell(this, x, y, true)
                     //topGrid[x][y] = cell
                     topGrid[x][y].currentStatus = NetworkedBattleship.topGridP1[x][y].first
                     topGrid[x][y].shipType = NetworkedBattleship.topGridP1[x][y].second
-                    topGrid[x][y].isTouchable = NetworkedBattleship.topGridP1[x][y].third
 
                     gameScreen_topGrid.addView(topGrid[x][y])
                     //addView(x, y)
 
-                    val cell = Cell(this, x, y, false)
+                    val cell = Cell(this, x, y)
                     bottomGrid[x][y] = cell
                     bottomGrid[x][y].currentStatus = NetworkedBattleship.bottomGridP1[x][y].first
                     bottomGrid[x][y].shipType = NetworkedBattleship.bottomGridP1[x][y].second
-                    bottomGrid[x][y].isTouchable = NetworkedBattleship.bottomGridP1[x][y].third
 
                     gameScreen_bottomGrid.addView(bottomGrid[x][y])
                     //addView(x, y)
                 }
             }
-        } else if (NetworkedBattleship.currentPlayer == 2) {
+        } else if (player == 2) {
             for(y in 0..GRID_SIZE - 1) {
                 for(x in 0..GRID_SIZE - 1) {
                     //var cell = Cell(this, x, y, true)
                     //topGrid[x][y] = cell
                     topGrid[x][y].currentStatus = NetworkedBattleship.topGridP2[x][y].first
                     topGrid[x][y].shipType = NetworkedBattleship.topGridP2[x][y].second
-                    topGrid[x][y].isTouchable = NetworkedBattleship.topGridP2[x][y].third
 
                     gameScreen_topGrid.addView(topGrid[x][y])
                     //addView(x, y)
 
-                    val cell = Cell(this, x, y, false)
+                    val cell = Cell(this, x, y)
                     bottomGrid[x][y] = cell
                     bottomGrid[x][y].currentStatus = NetworkedBattleship.bottomGridP2[x][y].first
                     bottomGrid[x][y].shipType = NetworkedBattleship.bottomGridP2[x][y].second
-                    bottomGrid[x][y].isTouchable = NetworkedBattleship.bottomGridP2[x][y].third
 
                     gameScreen_bottomGrid.addView(bottomGrid[x][y])
                     //addView(x, y)
@@ -286,7 +274,7 @@ class GameScreenActivity : AppCompatActivity() {
 
     //Decrements the ships health and sinks it if health drops to 0
     fun decrementShipHealth(shipTypeToDecrement: Ship) {
-        if(NetworkedBattleship.currentPlayer == 2) {
+        if(player == 2) {
             when(shipTypeToDecrement) {
                 Ship.DESTROYER -> {
                     NetworkedBattleship.player1.destroyerHealth--
@@ -329,7 +317,7 @@ class GameScreenActivity : AppCompatActivity() {
                     }
                 }
             }
-        } else if (NetworkedBattleship.currentPlayer == 1) {
+        } else if (player == 1) {
             when(shipTypeToDecrement) {
                 Ship.DESTROYER -> {
                     NetworkedBattleship.player2.destroyerHealth--
@@ -382,7 +370,7 @@ class GameScreenActivity : AppCompatActivity() {
         for(yPos in 0..9) {
             for(xPos in 0..9) {
                 if(opponentBottomGrid[xPos][yPos].second == shipTypeToSink){
-                    val updatedCell = Triple(Status.SUNK, opponentBottomGrid[xPos][yPos].second, false)
+                    val updatedCell = Pair(Status.SUNK, opponentBottomGrid[xPos][yPos].second)
                     playerTopGrid[xPos][yPos] = updatedCell
                     opponentBottomGrid[xPos][yPos] = updatedCell
                 }
@@ -392,13 +380,51 @@ class GameScreenActivity : AppCompatActivity() {
 
     /* Goes through the health of every ship to see if they are all sunk */
     fun checkForVictory() : Boolean {
-        if(NetworkedBattleship.currentPlayer == 1) {
+        if(player == 1) {
             return (NetworkedBattleship.player2.destroyerHealth == -1 && NetworkedBattleship.player2.cruiserHealth == -1 && NetworkedBattleship.player2.submarineHealth == -1 &&
                     NetworkedBattleship.player2.battleshipHealth == -1 && NetworkedBattleship.player2.carrierHealth == -1)
-        } else if (NetworkedBattleship.currentPlayer == 2) {
+        } else if (player == 2) {
             return (NetworkedBattleship.player1.destroyerHealth == -1 && NetworkedBattleship.player1.cruiserHealth == -1 && NetworkedBattleship.player1.submarineHealth == -1 &&
                     NetworkedBattleship.player1.battleshipHealth == -1 && NetworkedBattleship.player1.carrierHealth == -1)
         }
         return false
+    }
+
+    /* Read from the global data to update the cells in the grid */
+    fun updateGrid() {
+        for(y in 0..9) {
+            for(x in 0..9) {
+                if(player == 1) {
+                    //Log.e("GameScreen", "HIT")
+                    topGrid[x][y].currentStatus = NetworkedBattleship.topGridP1[x][y].first
+                    topGrid[x][y].shipType = NetworkedBattleship.topGridP1[x][y].second
+                    bottomGrid[x][y].currentStatus = NetworkedBattleship.bottomGridP1[x][y].first
+                    bottomGrid[x][y].shipType = NetworkedBattleship.bottomGridP1[x][y].second
+                }
+                else if (player == 2) {
+                    topGrid[x][y].currentStatus = NetworkedBattleship.topGridP2[x][y].first
+                    topGrid[x][y].shipType = NetworkedBattleship.topGridP2[x][y].second
+                    bottomGrid[x][y].currentStatus = NetworkedBattleship.bottomGridP2[x][y].first
+                    bottomGrid[x][y].shipType = NetworkedBattleship.bottomGridP2[x][y].second
+                }
+            }
+        }
+    }
+
+    fun updateArrows() {
+        //Update the arrow to show the current turn
+        if(NetworkedBattleship.currentPlayer == 1) {
+            gameScreen_leftArrow.visibility = View.VISIBLE
+            gameScreen_rightArrow.visibility = View.INVISIBLE
+        } else if(NetworkedBattleship.currentPlayer == 2) {
+            gameScreen_rightArrow.visibility = View.VISIBLE
+            gameScreen_leftArrow.visibility = View.INVISIBLE
+        }
+    }
+
+    fun updateShipText() {
+        //Update the unsunk ships text
+        gameScreen_unsunkShipsP1.text = "Ships Remaining: ${NetworkedBattleship.player1.shipsRemaining.toString()}"
+        gameScreen_unsunkShipsP2.text = "Ships Remaining: ${NetworkedBattleship.player2.shipsRemaining.toString()}"
     }
 }

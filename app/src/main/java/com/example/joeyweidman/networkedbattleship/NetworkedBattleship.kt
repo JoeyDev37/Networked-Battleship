@@ -2,6 +2,7 @@ package com.example.joeyweidman.networkedbattleship
 
 import android.content.Context
 import android.graphics.Point
+import android.util.Log
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.gson.Gson
@@ -26,12 +27,20 @@ object NetworkedBattleship {
     var player1: Player = Player() //json
     var player2: Player = Player() //json
 
-    lateinit var topGridP1: Array<Array<Triple<Status, Ship, Boolean>>> //json
-    lateinit var bottomGridP1: Array<Array<Triple<Status, Ship, Boolean>>> //json
-    lateinit var topGridP2: Array<Array<Triple<Status, Ship, Boolean>>> //json
-    lateinit var bottomGridP2: Array<Array<Triple<Status, Ship, Boolean>>> //json
+    var topGridP1: Array<Array<Pair<Status, Ship>>> //json
+    var bottomGridP1: Array<Array<Pair<Status, Ship>>> //json
+    var topGridP2: Array<Array<Pair<Status, Ship>>> //json
+    var bottomGridP2: Array<Array<Pair<Status, Ship>>> //json
 
-    lateinit var currentGridToPlaceShips: Array<Array<Triple<Status, Ship, Boolean>>>
+    init {
+        //Initialize all grids. Set empty values (because nothing is in them yet)
+        topGridP1 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
+        bottomGridP1 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
+        topGridP2 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
+        bottomGridP2 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
+    }
+
+    lateinit var currentGridToPlaceShips: Array<Array<Pair<Status, Ship>>>
 
     fun PlaceShipsRandomly() {
         currentGridToPlaceShips = bottomGridP1
@@ -117,8 +126,8 @@ object NetworkedBattleship {
             }
         }
         for(i in potentialPlacement) {
-            val newTriple = Triple(Status.SHIP, shipToPlace, false)
-            currentGridToPlaceShips[i.x][i.y] = newTriple
+            val newPair = Pair(Status.SHIP, shipToPlace)
+            currentGridToPlaceShips[i.x][i.y] = newPair
         }
     }
 
@@ -145,10 +154,10 @@ object NetworkedBattleship {
             val currentPlayer: Int,
             val player1: Player,
             val player2: Player,
-            val topGridP1: Array<Array<Triple<Status, Ship, Boolean>>>,
-            val topGridP2: Array<Array<Triple<Status, Ship, Boolean>>>,
-            val bottomGridP1: Array<Array<Triple<Status, Ship, Boolean>>>,
-            val bottomGridP2: Array<Array<Triple<Status, Ship, Boolean>>>
+            val topGridP1: Array<Array<Pair<Status, Ship>>>,
+            val topGridP2: Array<Array<Pair<Status, Ship>>>,
+            val bottomGridP1: Array<Array<Pair<Status, Ship>>>,
+            val bottomGridP2: Array<Array<Pair<Status, Ship>>>
     )
 
     data class FirebaseEntry(val json: String, val gameID: String, val IDplayer1: String, val IDplayer2: String)
@@ -167,6 +176,7 @@ object NetworkedBattleship {
     }
 
     fun LoadGame(jsonString: String) {
+        //Log.e("NetworkedBattleship", "LoadGame Called")
         val gson = Gson()
         //val inputAsString = FileInputStream(file).bufferedReader().use { it.readText() }
         val savedGame = gson.fromJson(jsonString, SaveGameState::class.java)
@@ -181,7 +191,7 @@ object NetworkedBattleship {
         bottomGridP2 = savedGame.bottomGridP2
     }
 
-    fun writeNewGame(userID: String): String {
+    fun WriteNewGame(userID: String): String {
         val savedGame = SaveGameState(
                 this.gameState, currentPlayer, player1, player2, topGridP1, topGridP2, bottomGridP1, bottomGridP2
         )
@@ -195,20 +205,24 @@ object NetworkedBattleship {
         return key
     }
 
-    fun updateGame() {
+    fun UpdateGame(gameKey: String) {
         val savedGame = SaveGameState(
                 this.gameState, currentPlayer, player1, player2, topGridP1, topGridP2, bottomGridP1, bottomGridP2
         )
+        val gson = Gson()
+        val jsonString: String = gson.toJson(savedGame)
+
+        mRootRef.child("games").child(gameKey).child("json").setValue(jsonString)
     }
 
-    fun cleanGame() {
+    fun CleanGame() {
         gameState = GameState.STARTING
         currentPlayer = 1
         player1 = Player()
         player2 = Player()
-        topGridP1 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, true)})})
-        topGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, true)})})
-        bottomGridP1 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, false)})})
-        bottomGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, false)})})
+        topGridP1 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
+        topGridP2 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
+        bottomGridP1 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
+        bottomGridP2 = Array(10, {Array(10, {Pair(Status.EMPTY, Ship.NONE)})})
     }
 }

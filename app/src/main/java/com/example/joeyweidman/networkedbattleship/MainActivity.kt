@@ -75,18 +75,24 @@ class MainActivity : AppCompatActivity() {
                     if(dataSnapshot!!.child("idplayer1").value == mAuth.currentUser!!.uid) {
                         //P1 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+                        NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
                         intent.putExtra("KEY", listOfGames[position])
+                        intent.putExtra("PLAYER", 1)
                         startActivity(intent)
                     } else if(dataSnapshot!!.child("idplayer2").value == mAuth.currentUser!!.uid) {
                         //P2 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+                        NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
                         intent.putExtra("KEY", listOfGames[position])
+                        intent.putExtra("PLAYER", 2)
                         startActivity(intent)
                     } else if(dataSnapshot!!.child("idplayer2").value == "empty") {
                         //P2 joins in the open slot
                         gameIdRef.child("idplayer2").setValue(mAuth.currentUser!!.uid)
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+                        NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
                         intent.putExtra("KEY", listOfGames[position])
+                        intent.putExtra("PLAYER", 2)
                         startActivity(intent)
                     } else {
                         //spectator mode
@@ -94,7 +100,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
             }
-            gameIdRef.addValueEventListener(gameIdListenter)
+            gameIdRef.addListenerForSingleValueEvent(gameIdListenter)
         }
 
         listOfGames = mutableListOf()
@@ -122,24 +128,14 @@ class MainActivity : AppCompatActivity() {
 
         gamesRef.addValueEventListener(gameListener)
 
-
-
-        // Example of a call to a native method
-        //sample_text.text = stringFromJNI()
-
-        //Initialize all grids. Set empty values (because nothing is in them yet)
-        NetworkedBattleship.topGridP1 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, true)})})
-        NetworkedBattleship.bottomGridP1 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, false)})})
-        NetworkedBattleship.topGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, true)})})
-        NetworkedBattleship.bottomGridP2 = Array(10, {Array(10, {Triple(Status.EMPTY, Ship.NONE, false)})})
-
         /* Starts a new game and puts the user in it */
         main_newGameButton.setOnClickListener {
-            NetworkedBattleship.cleanGame() //Initialize the game boards
+            NetworkedBattleship.CleanGame() //Initialize the game boards
             NetworkedBattleship.PlaceShipsRandomly() //Place ships randomly for P1 and P2
-            val key = NetworkedBattleship.writeNewGame(mAuth.currentUser!!.uid) //Start a new game and add the user with his id
+            val key = NetworkedBattleship.WriteNewGame(mAuth.currentUser!!.uid) //Start a new game and add the user with his id
             val intent = Intent(this, GameScreenActivity::class.java)
             intent.putExtra("KEY", key)
+            intent.putExtra("PLAYER", 1)
             startActivity(intent)
         }
     }
