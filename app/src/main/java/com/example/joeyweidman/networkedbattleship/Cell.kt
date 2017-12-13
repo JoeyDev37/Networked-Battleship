@@ -11,6 +11,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.android.synthetic.main.activity_game_screen.*
 
 /**
@@ -26,6 +29,11 @@ class Cell : View {
     constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs)
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) : super(context, attrs, defStyleAttr, defStyleRes)
+
+    private lateinit var mAuth: FirebaseAuth
+
+    private var rootRef: DatabaseReference
+    private var gameRef: DatabaseReference
 
     var x: Int = 0
     var y: Int = 0
@@ -43,6 +51,11 @@ class Cell : View {
         currentStatus = Status.EMPTY
         currentColor = Color.CYAN
         shipType = Ship.NONE
+
+        mAuth = FirebaseAuth.getInstance()
+
+        rootRef = FirebaseDatabase.getInstance().reference
+        gameRef = rootRef.child("games")
     }
 
     lateinit var opponentBottomGrid: Array<Array<Triple<Status, Ship, Boolean>>>
@@ -74,7 +87,7 @@ class Cell : View {
         canvas.drawColor(currentColor)
     }
 
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
+    /*override fun onTouchEvent(event: MotionEvent?): Boolean {
         //return super.onTouchEvent(event)
         if(event !is MotionEvent)
             return false
@@ -110,8 +123,10 @@ class Cell : View {
 
                         NetworkedBattleship.changeTurn()
 
-                        val intent = Intent(context, GameScreenActivity::class.java)
-                        context.startActivity(intent)
+
+
+                        //val intent = Intent(context, GameScreenActivity::class.java)
+                        //context.startActivity(intent)
                     }
                     else if (opponentStatus == Status.SHIP) { //Same stuff for a hit
                         currentStatus = Status.HIT
@@ -150,14 +165,14 @@ class Cell : View {
 
                         NetworkedBattleship.changeTurn()
 
-                        val intent = Intent(context, GameScreenActivity::class.java)
-                        context.startActivity(intent)
+                        //val intent = Intent(context, GameScreenActivity::class.java)
+                        //context.startActivity(intent)
                     }
                 }
             }
         }
         return true
-    }
+    }*/
 
     //Decrements the ships health and sinks it if health drops to 0
     fun decrementShipHealth() {

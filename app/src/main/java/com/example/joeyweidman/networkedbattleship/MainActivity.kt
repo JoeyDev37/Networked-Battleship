@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Layout
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +17,13 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
 import java.text.FieldPosition
+import android.provider.AlarmClock.EXTRA_MESSAGE
+import android.widget.AdapterView
+import android.widget.AdapterView.OnItemClickListener
+import android.widget.Toast
+import com.google.android.gms.internal.lv
+
+
 
 
 class MainActivity : AppCompatActivity() {
@@ -25,6 +33,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rootRef: DatabaseReference
     private lateinit var gamesRef: DatabaseReference
     private lateinit var listOfGames: MutableList<String>
+
+    private var canJoinGame: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +63,40 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, LoginActivity::class.java))
         }
 
+        main_gameListView.setOnItemClickListener { parent, view, position, id ->
+            val gameIdRef = gamesRef.child(listOfGames[position])
+            val gameIdListenter = object:ValueEventListener {
+                override fun onCancelled(p0: DatabaseError?) {
+
+                }
+
+                override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                    //Log.e("Main", "REACHEDD")
+                    if(dataSnapshot!!.child("idplayer1").value == mAuth.currentUser!!.uid) {
+                        //P1 joins their own game
+                        val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+                        intent.putExtra("KEY", listOfGames[position])
+                        startActivity(intent)
+                    } else if(dataSnapshot!!.child("idplayer2").value == mAuth.currentUser!!.uid) {
+                        //P2 joins their own game
+                        val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+                        intent.putExtra("KEY", listOfGames[position])
+                        startActivity(intent)
+                    } else if(dataSnapshot!!.child("idplayer2").value == "empty") {
+                        //P2 joins in the open slot
+                        gameIdRef.child("idplayer2").setValue(mAuth.currentUser!!.uid)
+                        val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+                        intent.putExtra("KEY", listOfGames[position])
+                        startActivity(intent)
+                    } else {
+                        //spectator mode
+                    }
+                }
+
+            }
+            gameIdRef.addValueEventListener(gameIdListenter)
+        }
+
         listOfGames = mutableListOf()
 
         rootRef = FirebaseDatabase.getInstance().reference
@@ -78,11 +122,7 @@ class MainActivity : AppCompatActivity() {
 
         gamesRef.addValueEventListener(gameListener)
 
-        main_gameListView.setOnItemClickListener { parent, view, position, id ->
-            //NetworkedBattleship.LoadGame(filesDir.listFiles()[position])
-            //startActivity(Intent(this, GameScreenActivity::class.java))
-            
-        }
+
 
         // Example of a call to a native method
         //sample_text.text = stringFromJNI()
@@ -101,10 +141,6 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, GameScreenActivity::class.java)
             intent.putExtra("KEY", key)
             startActivity(intent)
-        }
-
-        main_gameListView.setOnItemClickListener { parent, view, position, id ->
-
         }
     }
 

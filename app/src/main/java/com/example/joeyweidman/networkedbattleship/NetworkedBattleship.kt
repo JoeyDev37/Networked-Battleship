@@ -195,6 +195,12 @@ object NetworkedBattleship {
         return key
     }
 
+    fun updateGame() {
+        val savedGame = SaveGameState(
+                this.gameState, currentPlayer, player1, player2, topGridP1, topGridP2, bottomGridP1, bottomGridP2
+        )
+    }
+
     fun cleanGame() {
         gameState = GameState.STARTING
         currentPlayer = 1
