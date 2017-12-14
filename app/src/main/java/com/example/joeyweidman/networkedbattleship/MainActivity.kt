@@ -99,10 +99,11 @@ class MainActivity : AppCompatActivity() {
                         intent.putExtra("PLAYER", 2)
                         startActivity(intent)
                     } else {
-                        //spectator mode
-                        Log.e("Main", "Spectator mode reached")
-                        Log.e("Main", dataSnapshot!!.child("player1").child("ID").value.toString())
-                        Log.e("Main", dataSnapshot!!.child("player2").child("ID").value.toString())
+                        val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+                        NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
+                        intent.putExtra("KEY", listOfGames[position].first)
+                        intent.putExtra("PLAYER", 0)
+                        startActivity(intent)
                     }
                 }
 
@@ -130,6 +131,15 @@ class MainActivity : AppCompatActivity() {
                         val key: String = game.key
                         val triple = Triple(nameP1, nameP2, gameStatus)
                         val pair = Pair(key, triple)
+
+                        //Don't show completed games that you weren't part of
+                        val IDPlayer1 = game.child("player1").child("ID").value.toString()
+                        val IDPlayer2 = game.child("player2").child("ID").value.toString()
+                        if( game.child("gameState").value.toString() == GameState.P1_VICTORY.toString() || game.child("gameState").value.toString() == GameState.P2_VICTORY.toString()) {
+                            if(mAuth.currentUser!!.uid != IDPlayer1 && mAuth.currentUser!!.uid != IDPlayer2) {
+                                continue
+                            }
+                        }
                         listOfGames.add(pair)
                     }
                     val adapter = MyCustomAdapter(this@MainActivity, listOfGames)

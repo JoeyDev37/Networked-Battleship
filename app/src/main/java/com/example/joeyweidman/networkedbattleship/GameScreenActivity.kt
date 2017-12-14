@@ -30,6 +30,7 @@ class GameScreenActivity : AppCompatActivity() {
 
     private lateinit var gameKey: String
     private var player: Int = -1
+    private var spectating: Boolean = false
 
     val GRID_SIZE = 10
     lateinit var topGrid: Array<Array<Cell>>
@@ -57,12 +58,33 @@ class GameScreenActivity : AppCompatActivity() {
         player1Ref = gameKeyRef.child("player1")
         player2Ref = gameKeyRef.child("player2")
 
-        //Set the names of the current players
-        /*if(player == 1)
-            gameScreen_nameP1.text = playerName
-        else if(player == 2)
-            gameScreen_nameP2.text = playerName
-*/
+        /* SPECTATOR MODE STUFF */
+        if(player == 0) {
+            spectating = true
+            gameScreen_spectatingText.visibility = View.VISIBLE
+            player = NetworkedBattleship.currentPlayer
+
+            val gameListener = object: ValueEventListener {
+                override fun onCancelled(p0: DatabaseError?) {
+
+                }
+
+                override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                    player = NetworkedBattleship.currentPlayer
+                    val jsonString = dataSnapshot!!.child("json").value as String
+                    NetworkedBattleship.LoadGame(jsonString)
+                    updateGrid()
+                    updateArrows()
+                    updateStatus()
+                    updateShipText()
+                }
+
+            }
+
+            gameKeyRef.addValueEventListener(gameListener)
+        }
+        //END OF SPECTATOR STUFF
+
         val gameStateListener = object: ValueEventListener {
             override fun onCancelled(p0: DatabaseError?) {
 
@@ -155,6 +177,10 @@ class GameScreenActivity : AppCompatActivity() {
                     override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                         if(event !is MotionEvent)
                             return false
+
+                        //Dont allow spectators to touch
+                        if(spectating)
+                            return true
 
                         //Dont allow touch actions if the game is in the starting state
                         if(NetworkedBattleship.gameState == GameState.STARTING)
