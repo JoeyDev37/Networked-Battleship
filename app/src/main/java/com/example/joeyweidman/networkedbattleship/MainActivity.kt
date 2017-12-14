@@ -10,8 +10,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseAdapter
-import android.widget.TextView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
@@ -19,9 +17,8 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.text.FieldPosition
 import android.provider.AlarmClock.EXTRA_MESSAGE
 import android.provider.ContactsContract
-import android.widget.AdapterView
+import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
-import android.widget.Toast
 import com.google.android.gms.internal.lv
 
 
@@ -142,7 +139,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         listOfGames.add(pair)
                     }
-                    val adapter = MyCustomAdapter(this@MainActivity, listOfGames)
+                    val adapter = MyCustomAdapter(this@MainActivity, listOfGames, rootRef)
                     main_gameListView.adapter = adapter
                 }
             }
@@ -163,14 +160,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private class MyCustomAdapter(context: Context, list: MutableList<Pair<String, Triple<String, String, String>>>): BaseAdapter() {
+    private class MyCustomAdapter(context: Context, list: MutableList<Pair<String, Triple<String, String, String>>>, rootRef: DatabaseReference): BaseAdapter() {
 
         private val mContext: Context
         private val list: MutableList<Pair<String, Triple<String, String, String>>>
+        private val rootRef: DatabaseReference
 
         init {
             mContext = context
             this.list = list
+            this.rootRef = rootRef
         }
 
         //Responsible for rendering each row
@@ -184,6 +183,17 @@ class MainActivity : AppCompatActivity() {
             if(nameP2 == "null")
                 nameP2 = ""
             gameNameText.text = "$nameP1 VS $nameP2"
+
+            val deleteButton = rowMain.findViewById<Button>(R.id.deleteButton)
+
+            deleteButton.setOnClickListener {
+                rootRef.child("games").child(list[position].first).removeValue()
+            }
+
+            //Show the delete button if the game is completed
+            if(list[position].second.third == GameState.P1_VICTORY.toString() || list[position].second.third == GameState.P2_VICTORY.toString()) {
+                deleteButton.visibility = View.VISIBLE
+            }
 
             val gameDetailsText = rowMain.findViewById<TextView>(R.id.gameDetails_textView)
             gameDetailsText.text = list[position].second.third

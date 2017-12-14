@@ -59,6 +59,16 @@ class LoginActivity : AppCompatActivity() {
 
     private fun callSignup(email: String, password: String) {
 
+        if(!isEmailValid(email)) {
+            Toast.makeText(this, "Email Not Valid", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if(!isPasswordValid(password)) {
+            Toast.makeText(this, "Password Not Valid", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task: Task<AuthResult> ->
             if (task.isSuccessful) {
                 //Registration OK
@@ -98,5 +108,18 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Sign In Failed", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun isEmailValid(email: String): Boolean {
+
+        return email.contains("@")
+    }
+
+    private fun isPasswordValid(password: String): Boolean {
+        val regex: Regex = Regex("^([a-zA-Z+]+[0-9+]+[&@!#+]+)\$")
+        if(password.matches(regex) && password.length > 7)
+            return true
+
+        return false
     }
 }
