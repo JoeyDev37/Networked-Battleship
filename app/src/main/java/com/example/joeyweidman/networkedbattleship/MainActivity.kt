@@ -2,11 +2,8 @@ package com.example.joeyweidman.networkedbattleship
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.text.Layout
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,16 +11,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
-import java.text.FieldPosition
-import android.provider.AlarmClock.EXTRA_MESSAGE
-import android.provider.ContactsContract
 import android.widget.*
-import android.widget.AdapterView.OnItemClickListener
-import com.google.android.gms.internal.lv
 
 
 
-
+/**
+ * This activity displays a list of available games, allows you to start a new game,
+ * or lets you log out. If you were part of a game that has ended, you will have the option to
+ * delete the game.
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var mAuth: FirebaseAuth
@@ -31,9 +27,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rootRef: DatabaseReference
     private lateinit var gamesRef: DatabaseReference
     private lateinit var listOfGames: MutableList<Pair<String, Triple<String, String, String>>>
-    //private lateinit var listOfGames: MutableList<String>
-
-    private var canJoinGame: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,30 +67,41 @@ class MainActivity : AppCompatActivity() {
                     if(dataSnapshot!!.child("player1").child("ID").value == mAuth.currentUser!!.uid) {
                         //P1 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
+
                         intent.putExtra("KEY", listOfGames[position].first)
                         intent.putExtra("PLAYER", 1)
+
                         startActivity(intent)
                     } else if(dataSnapshot!!.child("player2").child("ID").value == mAuth.currentUser!!.uid) {
                         //P2 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
+
                         intent.putExtra("KEY", listOfGames[position].first)
                         intent.putExtra("PLAYER", 2)
+
                         startActivity(intent)
                     } else if(dataSnapshot!!.child("player2").child("ID").value == null) {
                         //P2 joins in the open slot
                         gameIdRef.child("player2").child("ID").setValue(mAuth.currentUser!!.uid)
                         gameIdRef.child("player2").child("name").setValue(currentUser!!.displayName)
                         gameIdRef.child("gameState").setValue(GameState.IN_PROGRESS)
+
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
+
                         intent.putExtra("KEY", listOfGames[position].first)
                         intent.putExtra("PLAYER", 2)
                         startActivity(intent)
                     } else {
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
+
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
+
                         intent.putExtra("KEY", listOfGames[position].first)
                         intent.putExtra("PLAYER", 0)
                         startActivity(intent)
@@ -160,6 +164,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * The adapter for the main menu list view.
+     * The title of each row in the list displays the players in the game in the format of:
+     * Bob VS Bill
+     * Also displays the current status of each game in the list right below the title.
+     */
     private class MyCustomAdapter(context: Context, list: MutableList<Pair<String, Triple<String, String, String>>>, rootRef: DatabaseReference): BaseAdapter() {
 
         private val mContext: Context
@@ -182,6 +192,7 @@ class MainActivity : AppCompatActivity() {
             var nameP2 = list[position].second.second
             if(nameP2 == "null")
                 nameP2 = ""
+
             gameNameText.text = "$nameP1 VS $nameP2"
 
             val deleteButton = rowMain.findViewById<Button>(R.id.deleteButton)
@@ -194,9 +205,8 @@ class MainActivity : AppCompatActivity() {
             if(list[position].second.third == GameState.P1_VICTORY.toString() || list[position].second.third == GameState.P2_VICTORY.toString()) {
                 deleteButton.visibility = View.VISIBLE
             }
-
             val gameDetailsText = rowMain.findViewById<TextView>(R.id.gameDetails_textView)
-            gameDetailsText.text = list[position].second.third
+            gameDetailsText.text = "${list[position].second.third}"
             return rowMain
         }
 

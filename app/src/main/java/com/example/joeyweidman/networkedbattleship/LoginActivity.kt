@@ -13,6 +13,12 @@ import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 
+/**
+ * This activity allows you to sign up or sign in to your account. If you are already signed in, it
+ * will take you straight to the main menu instead.
+ *
+ * There is basic validation for email and password.
+ */
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var mAuth: FirebaseAuth

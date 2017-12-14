@@ -16,7 +16,14 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_game_screen.*
+import java.util.*
 
+/**
+ * This activity is where most of the event listeners are for sending and receiving data from
+ * the Firebase Realtime Database. It will display the current user's top and bottom grid, and will
+ * send an update to the database whenever and action takes place. Listeners are set up to receive
+ * data from the database whenever there is an update.
+ */
 class GameScreenActivity : AppCompatActivity() {
 
     private lateinit var mAuth: FirebaseAuth
@@ -31,6 +38,7 @@ class GameScreenActivity : AppCompatActivity() {
     private lateinit var gameKey: String
     private var player: Int = -1
     private var spectating: Boolean = false
+    private var ai: Boolean = true
 
     val GRID_SIZE = 10
     lateinit var topGrid: Array<Array<Cell>>
@@ -84,6 +92,14 @@ class GameScreenActivity : AppCompatActivity() {
             gameKeyRef.addValueEventListener(gameListener)
         }
         //END OF SPECTATOR STUFF
+
+        /* AI STUFF */
+        if(ai) {
+            val randomX = Random()
+            val randomY = Random()
+
+        }
+        //END OF AI STUFF
 
         val gameStateListener = object: ValueEventListener {
             override fun onCancelled(p0: DatabaseError?) {
@@ -141,6 +157,8 @@ class GameScreenActivity : AppCompatActivity() {
             }
 
             override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                if(dataSnapshot!!.value == null)
+                    return
                 val jsonString = dataSnapshot?.value as String
                 NetworkedBattleship.LoadGame(jsonString)
                 updateGrid()

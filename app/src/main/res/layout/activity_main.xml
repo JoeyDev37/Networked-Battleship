@@ -51,5 +51,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/main_userNameText" />
 
+    <CheckBox
+        android:id="@+id/checkBox_AI"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:text="Join As AI"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/main_logOutButton"
+        app:layout_constraintStart_toEndOf="@+id/main_newGameButton" />
+
 
 </android.support.constraint.ConstraintLayout>
