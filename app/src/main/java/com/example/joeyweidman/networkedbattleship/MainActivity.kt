@@ -33,8 +33,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rootRef: DatabaseReference
     private lateinit var gamesRef: DatabaseReference
-    //private lateinit var listOfGames: MutableList<Map<String, Triple<String, String, String>>>
-    private lateinit var listOfGames: MutableList<String>
+    private lateinit var listOfGames: MutableList<Pair<String, Triple<String, String, String>>>
+    //private lateinit var listOfGames: MutableList<String>
 
     private var canJoinGame: Boolean = false
 
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
 
         main_gameListView.setOnItemClickListener { parent, view, position, id ->
 
-            val gameIdRef = gamesRef.child(listOfGames[position])
+            val gameIdRef = gamesRef.child(listOfGames[position].first)
             val gameIdListenter = object:ValueEventListener {
                 override fun onCancelled(p0: DatabaseError?) {
 
@@ -78,14 +78,14 @@ class MainActivity : AppCompatActivity() {
                         //P1 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
-                        intent.putExtra("KEY", listOfGames[position])
+                        intent.putExtra("KEY", listOfGames[position].first)
                         intent.putExtra("PLAYER", 1)
                         startActivity(intent)
                     } else if(dataSnapshot!!.child("player2").child("ID").value == mAuth.currentUser!!.uid) {
                         //P2 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
-                        intent.putExtra("KEY", listOfGames[position])
+                        intent.putExtra("KEY", listOfGames[position].first)
                         intent.putExtra("PLAYER", 2)
                         startActivity(intent)
                     } else if(dataSnapshot!!.child("player2").child("ID").value == null) {
@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
                         gameIdRef.child("gameState").setValue(GameState.IN_PROGRESS)
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
-                        intent.putExtra("KEY", listOfGames[position])
+                        intent.putExtra("KEY", listOfGames[position].first)
                         intent.putExtra("PLAYER", 2)
                         startActivity(intent)
                     } else {
@@ -124,8 +124,13 @@ class MainActivity : AppCompatActivity() {
                 listOfGames.clear()
                 if(dataSnapshot!!.exists()) {
                     for(game in dataSnapshot.children) {
-                        val string: String = game.key
-                        listOfGames.add(string)
+                        val nameP1 = game.child("player1").child("name").value.toString()
+                        val nameP2 = game.child("player2").child("name").value.toString()
+                        val gameStatus = game.child("gameState").value.toString()
+                        val key: String = game.key
+                        val triple = Triple(nameP1, nameP2, gameStatus)
+                        val pair = Pair(key, triple)
+                        listOfGames.add(pair)
                     }
                     val adapter = MyCustomAdapter(this@MainActivity, listOfGames)
                     main_gameListView.adapter = adapter
@@ -139,7 +144,6 @@ class MainActivity : AppCompatActivity() {
         main_newGameButton.setOnClickListener {
             NetworkedBattleship.CleanGame() //Initialize the game boards
             NetworkedBattleship.PlaceShipsRandomly() //Place ships randomly for P1 and P2
-            //val currentUser: FirebaseUser? = mAuth.currentUser
             val key = NetworkedBattleship.WriteNewGame(mAuth.currentUser!!.uid, currentUser.displayName, GameState.STARTING) //Start a new game and add the user with his id and name
             NetworkedBattleship.UpdateGame(key)
             val intent = Intent(this, GameScreenActivity::class.java)
@@ -149,10 +153,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private class MyCustomAdapter(context: Context, list: MutableList<String>): BaseAdapter() {
+    private class MyCustomAdapter(context: Context, list: MutableList<Pair<String, Triple<String, String, String>>>): BaseAdapter() {
 
         private val mContext: Context
-        private val list: MutableList<String>
+        private val list: MutableList<Pair<String, Triple<String, String, String>>>
 
         init {
             mContext = context
@@ -165,10 +169,14 @@ class MainActivity : AppCompatActivity() {
             val rowMain = layoutInflater.inflate(R.layout.row_main, viewGroup, false)
 
             val gameNameText = rowMain.findViewById<TextView>(R.id.gameName_textView)
-            gameNameText.text = "Game $position"
+            var nameP1 = list[position].second.first
+            var nameP2 = list[position].second.second
+            if(nameP2 == "null")
+                nameP2 = ""
+            gameNameText.text = "$nameP1 VS $nameP2"
 
             val gameDetailsText = rowMain.findViewById<TextView>(R.id.gameDetails_textView)
-            gameDetailsText.text = list[position]
+            gameDetailsText.text = list[position].second.third
             return rowMain
         }
 
