@@ -191,7 +191,7 @@ object NetworkedBattleship {
         bottomGridP2 = savedGame.bottomGridP2
     }
 
-    fun WriteNewGame(userID: String): String {
+    fun WriteNewGame(userID: String, name: String?): String {
         val savedGame = SaveGameState(
                 this.gameState, currentPlayer, player1, player2, topGridP1, topGridP2, bottomGridP1, bottomGridP2
         )
@@ -202,6 +202,8 @@ object NetworkedBattleship {
         val firebaseEntry = FirebaseEntry(jsonString, key, "empty", "empty")
         mRootRef.child("games").child(key).setValue(firebaseEntry)
         mRootRef.child("games").child(key).child("idplayer1").setValue(userID)
+
+        mRootRef.child("games").child(key).child("idplayer1").child("name").setValue(name)
         return key
     }
 

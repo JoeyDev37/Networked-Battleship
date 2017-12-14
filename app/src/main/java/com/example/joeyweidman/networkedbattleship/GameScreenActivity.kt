@@ -6,12 +6,14 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Debug
 import android.provider.ContactsContract
+import android.renderscript.Sampler
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_game_screen.*
 
@@ -22,6 +24,8 @@ class GameScreenActivity : AppCompatActivity() {
     private lateinit var rootRef: DatabaseReference
     private lateinit var gameKeyRef: DatabaseReference
     private lateinit var jsonRef: DatabaseReference
+    private lateinit var player1Ref: DatabaseReference
+    private lateinit var player2Ref: DatabaseReference
 
     private var player: Int = -1
 
@@ -44,11 +48,46 @@ class GameScreenActivity : AppCompatActivity() {
         val gameKey = intent.getStringExtra("KEY")
         player = intent.getIntExtra("PLAYER", 0)
 
-        Log.e("GameScreen", "Game Key: ${gameKey}, Player: ${player}")
-
         rootRef = FirebaseDatabase.getInstance().reference
         gameKeyRef = rootRef.child("games").child(gameKey)
         jsonRef = gameKeyRef.child("json")
+        player1Ref = gameKeyRef.child("idplayer1")
+        player2Ref = gameKeyRef.child("idplayer2")
+
+        val player1Listener = object: ValueEventListener {
+            override fun onCancelled(p0: DatabaseError?) {
+
+            }
+
+            override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                if(dataSnapshot!!.value != "empty") {
+                    gameScreen_nameP1.text = dataSnapshot!!.child("name").value.toString()
+                }
+            }
+
+        }
+
+        player1Ref.addValueEventListener(player1Listener)
+
+        //Check if two players are registered in the game so we can change the game status
+        val player2Listener = object: ValueEventListener {
+            override fun onCancelled(p0: DatabaseError?) {
+
+            }
+
+            override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                if(dataSnapshot!!.value != "empty") {
+                    gameScreen_nameP2.text = dataSnapshot.child("name").value.toString()
+
+                    NetworkedBattleship.gameState = GameState.IN_PROGRESS
+                    NetworkedBattleship.UpdateGame(gameKey)
+                    updateStatus()
+                }
+            }
+
+        }
+
+        player2Ref.addValueEventListener(player2Listener)
 
         val jsonListener = object: ValueEventListener {
             override fun onCancelled(dataSnapshot: DatabaseError?) {
@@ -60,6 +99,7 @@ class GameScreenActivity : AppCompatActivity() {
                 NetworkedBattleship.LoadGame(jsonString)
                 updateGrid()
                 updateArrows()
+                updateStatus()
                 updateShipText()
             }
         }
@@ -91,6 +131,10 @@ class GameScreenActivity : AppCompatActivity() {
                     override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                         if(event !is MotionEvent)
                             return false
+
+                        //Dont allow touch actions if the game is in the starting state
+                        if(NetworkedBattleship.gameState == GameState.STARTING)
+                            return true
 
                         //Don't allow touch actions if it's not the players turn
                         if(NetworkedBattleship.currentPlayer != player)
@@ -140,11 +184,10 @@ class GameScreenActivity : AppCompatActivity() {
                                     if(checkForVictory()) {
                                         if(player == 1) {
                                             //P1 Victory
-                                            Log.e("Cell", "P1 VICTORY REACHED")
+                                            Log.e("GameScreen", NetworkedBattleship.gameState.toString())
                                             NetworkedBattleship.gameState = GameState.P1_VICTORY
                                         } else if (player == 2) {
                                             //P2 Victory
-                                            Log.e("Cell", "P2 VICTORY REACHED")
                                             NetworkedBattleship.gameState = GameState.P2_VICTORY
                                         }
                                     }
@@ -426,5 +469,9 @@ class GameScreenActivity : AppCompatActivity() {
         //Update the unsunk ships text
         gameScreen_unsunkShipsP1.text = "Ships Remaining: ${NetworkedBattleship.player1.shipsRemaining.toString()}"
         gameScreen_unsunkShipsP2.text = "Ships Remaining: ${NetworkedBattleship.player2.shipsRemaining.toString()}"
+    }
+
+    fun updateStatus() {
+        gameScreen_gameStatusText.text = NetworkedBattleship.gameState.toString()
     }
 }
