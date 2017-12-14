@@ -18,6 +18,7 @@ import com.google.firebase.database.*
 import kotlinx.android.synthetic.main.activity_main.*
 import java.text.FieldPosition
 import android.provider.AlarmClock.EXTRA_MESSAGE
+import android.provider.ContactsContract
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.Toast
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rootRef: DatabaseReference
     private lateinit var gamesRef: DatabaseReference
+    //private lateinit var listOfGames: MutableList<Map<String, Triple<String, String, String>>>
     private lateinit var listOfGames: MutableList<String>
 
     private var canJoinGame: Boolean = false
@@ -72,34 +74,35 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onDataChange(dataSnapshot: DataSnapshot?) {
-                    if(dataSnapshot!!.child("idplayer1").value == mAuth.currentUser!!.uid) {
+                    if(dataSnapshot!!.child("player1").child("ID").value == mAuth.currentUser!!.uid) {
                         //P1 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
                         intent.putExtra("KEY", listOfGames[position])
                         intent.putExtra("PLAYER", 1)
                         startActivity(intent)
-                    } else if(dataSnapshot!!.child("idplayer2").value == mAuth.currentUser!!.uid) {
+                    } else if(dataSnapshot!!.child("player2").child("ID").value == mAuth.currentUser!!.uid) {
                         //P2 joins their own game
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
-                        Log.e("Main", "REACHED TWO")
                         intent.putExtra("KEY", listOfGames[position])
                         intent.putExtra("PLAYER", 2)
                         startActivity(intent)
-                    } else if(dataSnapshot!!.child("idplayer2").value == "empty") {
+                    } else if(dataSnapshot!!.child("player2").child("ID").value == null) {
                         //P2 joins in the open slot
-                        //val currentUser: FirebaseUser? = mAuth.currentUser
-                        gameIdRef.child("idplayer2").setValue(mAuth.currentUser!!.uid)
-                        //gameIdRef.child("idplayer2").child("name").setValue(currentUser!!.displayName)
+                        gameIdRef.child("player2").child("ID").setValue(mAuth.currentUser!!.uid)
+                        gameIdRef.child("player2").child("name").setValue(currentUser!!.displayName)
+                        gameIdRef.child("gameState").setValue(GameState.IN_PROGRESS)
                         val intent = Intent(this@MainActivity, GameScreenActivity::class.java)
                         NetworkedBattleship.LoadGame(dataSnapshot.child("json").value as String)
-                        Log.e("Main", "REACHED THREE")
                         intent.putExtra("KEY", listOfGames[position])
                         intent.putExtra("PLAYER", 2)
                         startActivity(intent)
                     } else {
                         //spectator mode
+                        Log.e("Main", "Spectator mode reached")
+                        Log.e("Main", dataSnapshot!!.child("player1").child("ID").value.toString())
+                        Log.e("Main", dataSnapshot!!.child("player2").child("ID").value.toString())
                     }
                 }
 
@@ -137,7 +140,8 @@ class MainActivity : AppCompatActivity() {
             NetworkedBattleship.CleanGame() //Initialize the game boards
             NetworkedBattleship.PlaceShipsRandomly() //Place ships randomly for P1 and P2
             //val currentUser: FirebaseUser? = mAuth.currentUser
-            val key = NetworkedBattleship.WriteNewGame(mAuth.currentUser!!.uid, currentUser!!.displayName) //Start a new game and add the user with his id
+            val key = NetworkedBattleship.WriteNewGame(mAuth.currentUser!!.uid, currentUser.displayName, GameState.STARTING) //Start a new game and add the user with his id and name
+            NetworkedBattleship.UpdateGame(key)
             val intent = Intent(this, GameScreenActivity::class.java)
             intent.putExtra("KEY", key)
             intent.putExtra("PLAYER", 1)

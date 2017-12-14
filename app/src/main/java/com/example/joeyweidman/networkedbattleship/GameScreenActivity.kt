@@ -26,7 +26,9 @@ class GameScreenActivity : AppCompatActivity() {
     private lateinit var jsonRef: DatabaseReference
     private lateinit var player1Ref: DatabaseReference
     private lateinit var player2Ref: DatabaseReference
+    private lateinit var gameStateRef: DatabaseReference
 
+    private lateinit var gameKey: String
     private var player: Int = -1
 
     val GRID_SIZE = 10
@@ -45,14 +47,34 @@ class GameScreenActivity : AppCompatActivity() {
 
         mAuth = FirebaseAuth.getInstance()
 
-        val gameKey = intent.getStringExtra("KEY")
+        gameKey = intent.getStringExtra("KEY")
         player = intent.getIntExtra("PLAYER", 0)
 
         rootRef = FirebaseDatabase.getInstance().reference
         gameKeyRef = rootRef.child("games").child(gameKey)
+        gameStateRef = gameKeyRef.child("gameState")
         jsonRef = gameKeyRef.child("json")
-        player1Ref = gameKeyRef.child("idplayer1")
-        player2Ref = gameKeyRef.child("idplayer2")
+        player1Ref = gameKeyRef.child("player1")
+        player2Ref = gameKeyRef.child("player2")
+
+        //Set the names of the current players
+        /*if(player == 1)
+            gameScreen_nameP1.text = playerName
+        else if(player == 2)
+            gameScreen_nameP2.text = playerName
+*/
+        val gameStateListener = object: ValueEventListener {
+            override fun onCancelled(p0: DatabaseError?) {
+
+            }
+
+            override fun onDataChange(dataSnapshot: DataSnapshot?) {
+                gameScreen_gameStatusText.text = dataSnapshot!!.value.toString()
+            }
+
+        }
+
+        gameStateRef.addValueEventListener(gameStateListener)
 
         val player1Listener = object: ValueEventListener {
             override fun onCancelled(p0: DatabaseError?) {
@@ -60,9 +82,7 @@ class GameScreenActivity : AppCompatActivity() {
             }
 
             override fun onDataChange(dataSnapshot: DataSnapshot?) {
-                if(dataSnapshot!!.value != "empty") {
-                    gameScreen_nameP1.text = dataSnapshot!!.child("name").value.toString()
-                }
+                gameScreen_nameP1.text = dataSnapshot!!.child("name").value.toString()
             }
 
         }
@@ -76,13 +96,17 @@ class GameScreenActivity : AppCompatActivity() {
             }
 
             override fun onDataChange(dataSnapshot: DataSnapshot?) {
-                if(dataSnapshot!!.value != "empty") {
-                    gameScreen_nameP2.text = dataSnapshot.child("name").value.toString()
+                gameScreen_nameP2.text = dataSnapshot!!.child("name").value.toString()
 
+                if(dataSnapshot.value != "empty") {
+                    if(NetworkedBattleship.gameState == GameState.P1_VICTORY || NetworkedBattleship.gameState == GameState.P2_VICTORY)
+                        return
+                    Log.e("GameScreen", NetworkedBattleship.gameState.toString())
                     NetworkedBattleship.gameState = GameState.IN_PROGRESS
-                    NetworkedBattleship.UpdateGame(gameKey)
-                    updateStatus()
                 }
+
+
+                NetworkedBattleship.UpdateGame(gameKey)
             }
 
         }
@@ -186,9 +210,11 @@ class GameScreenActivity : AppCompatActivity() {
                                             //P1 Victory
                                             Log.e("GameScreen", NetworkedBattleship.gameState.toString())
                                             NetworkedBattleship.gameState = GameState.P1_VICTORY
+                                            gameKeyRef.child("gameState").setValue(GameState.P1_VICTORY)
                                         } else if (player == 2) {
                                             //P2 Victory
                                             NetworkedBattleship.gameState = GameState.P2_VICTORY
+                                            gameKeyRef.child("gameState").setValue(GameState.P2_VICTORY)
                                         }
                                     }
 
